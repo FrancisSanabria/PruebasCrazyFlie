@@ -33,8 +33,6 @@
 """
 Simple example that connects to the first Crazyflie found, ramps up/down
 the motors and disconnects.
- 
- Debemos de modificar algo asfasdf
 """
 import logging
 import time
