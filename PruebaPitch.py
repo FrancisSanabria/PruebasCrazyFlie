@@ -84,7 +84,7 @@ class MotorRampExample:
         thrust_mult = 1
         thrust_step = 500
         thrust = 20000
-        pitch = 30
+        pitch = 45
         roll = 0
         yawrate = 0
 
@@ -101,7 +101,7 @@ class MotorRampExample:
         thrust_mult  = 1
         thrust = 20000
         while thrust >= 20000:
-            self._cf.commander.send_setpoint(roll, -30, yawrate, thrust)
+            self._cf.commander.send_setpoint(roll, -45, yawrate, thrust)
             time.sleep(0.1)
             if thrust >= 25000:
                 thrust_mult = -1
