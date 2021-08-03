@@ -38,4 +38,5 @@ with arduino:
             warnings.warn("Line {} didn't parse, skipping".format(line))
         except KeyboardInterrupt:
             print("Exiting")
+            arduino.close()
             break
