@@ -18,7 +18,7 @@
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public LicAnguloBanqueoense for more details.
+#  GNU General Public License for more details.
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
@@ -27,35 +27,36 @@
 Simple example that connects to the first Crazyflie found, ramps up/down
 the motors and disconnects.
 """
+
+
+
+
+
+#------------------------------------------------------------------------------------------------
+#                                   IMPORTE DE LIBRERIAS
+#------------------------------------------------------------------------------------------------
+from tkinter import * 
+
 import logging
 import time
 from threading import Thread
+
 import cflib
 from cflib.crazyflie import Crazyflie
 from cflib.utils import uri_helper
 
-import serial
-import warnings
-import numpy as np
-from collections import deque
-import matplotlib.pyplot as plt
 
 
-# -------------- Comunicacion Serial con Python -----------------
-arduino = serial.Serial('/dev/ttyACM0', baudrate=115200, timeout=1.0)
-arduino.setDTR(False)
-time.sleep(1)
-arduino.flushInput()
-arduino.setDTR(True)
-# ------------------------------------------------------------------
-time.sleep(2)
+#------------------------------------------------------------------------------------------------
+#                                  DEFINICION DE CLASES
+#------------------------------------------------------------------------------------------------
 
 uri = uri_helper.uri_from_env(default='radio://0/0/250K/E7E7E7E7E7')
 
 logging.basicConfig(level=logging.ERROR)
 
 
-class AnguloBanqueo:
+class MotorRampExample:
     """Example that connects to a Crazyflie and ramps the motors up/down and
     the disconnects"""
 
@@ -72,7 +73,6 @@ class AnguloBanqueo:
         self._cf.open_link(link_uri)
 
         print('Connecting to %s' % link_uri)
-        self.is_connected = True
 
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
@@ -86,7 +86,6 @@ class AnguloBanqueo:
         """Callback when connection initial connection fails (i.e no Crazyflie
         at the specified address)"""
         print('Connection to %s failed: %s' % (link_uri, msg))
-        self.is_connected = False
 
     def _connection_lost(self, link_uri, msg):
         """Callback when disconnected after a connection has been made (i.e
@@ -96,7 +95,6 @@ class AnguloBanqueo:
     def _disconnected(self, link_uri):
         """Callback when the Crazyflie is disconnected (called in all cases)"""
         print('Disconnected from %s' % link_uri)
-        self.is_connected = False
 
     def _ramp_motors(self):
         thrust_mult = 1
@@ -119,7 +117,7 @@ class AnguloBanqueo:
         thrust_mult  = 1
         thrust = 20000
         while thrust >= 20000:
-            self._cf.commander.send_setpoint(roll, 0, yawrate, thrust)
+            self._cf.commander.send_setpoint(roll, -45, yawrate, thrust)
             time.sleep(0.1)
             if thrust >= 25000:
                 thrust_mult = -1
@@ -132,26 +130,32 @@ class AnguloBanqueo:
         self._cf.close_link()
 
 
-if __name__ == '__main__':
-    # Initialize the low-level drivers
+#------------------------------------------------------------------------------------------------
+#                                  CREACION DE INTEFAZ
+#------------------------------------------------------------------------------------------------
+
+
+    
+
+
+
+ventana = Tk()
+ventana.title("Controlando al Crazyflie")
+#ventana.geometry("400x200")
+ventana.resizable(0,0)
+
+titulo = Label(ventana, text="Mandar comandos de angulo al Crazyflie", font = ("Helvetica",15,"bold"))
+titulo.grid(row=0,column=0,columnspan=3)
+
+e_pitch = Entry(ventana)
+e_pitch.grid(row=1,column=1) 
+
+def EnviarComandos():
     cflib.crtp.init_drivers()
+    le = MotorRampExample(uri)
 
-    Objeto = AnguloBanqueo(uri)
+Boton1 = Button(ventana,text="EnviarCrazyflie", command= EnviarComandos).grid(row=2,column=1) #place(x=250,y=150)
+Etiqueta1 = Label(ventana,text="Angulo de Pitch").grid(row=1,column=0)
+Etiqueta2 = Label(ventana,text="grados").grid(row=1,column=2) 
 
-    while Objeto.is_connected:
-        try:
-            line = arduino.readline()
-            if not line:
-            # HACK: Descartamos líneas vacías porque fromstring produce
-            # resultados erróneos, ver
-            # https://github.com/numpy/numpy/issues/1714
-                continue
-            line = line.decode('ascii', errors='replace')
-            print(line)
-            
-        except ValueError:
-            warnings.warn("Line {} didn't parse, skipping".format(line))
-        except KeyboardInterrupt:
-            print("Exiting")
-            arduino.close()
-            break
+ventana.mainloop()
