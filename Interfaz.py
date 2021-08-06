@@ -100,14 +100,14 @@ class MotorRampExample:
         thrust_mult = 1
         thrust_step = 500
         thrust = 20000
-        pitch = 45
+        pitch = 30
         roll = 0
         yawrate = 0
 
         # Unlock startup thrust protection
         self._cf.commander.send_setpoint(0, 0, 0, 0)
         while thrust >= 20000:
-            self._cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
+            self._cf.commander.send_setpoint(roll, 0, yawrate, thrust)
             time.sleep(0.1)
             if thrust >= 25000:
                 thrust_mult = -1
@@ -117,7 +117,7 @@ class MotorRampExample:
         thrust_mult  = 1
         thrust = 20000
         while thrust >= 20000:
-            self._cf.commander.send_setpoint(roll, -45, yawrate, thrust)
+            self._cf.commander.send_setpoint(roll, pitch_num, yawrate, thrust)
             time.sleep(0.1)
             if thrust >= 25000:
                 thrust_mult = -1
@@ -148,9 +148,13 @@ titulo = Label(ventana, text="Mandar comandos de angulo al Crazyflie", font = ("
 titulo.grid(row=0,column=0,columnspan=3)
 
 e_pitch = Entry(ventana)
+
 e_pitch.grid(row=1,column=1) 
 
 def EnviarComandos():
+    num = e_pitch.get()
+    global pitch_num
+    pitch_num = int(num)
     cflib.crtp.init_drivers()
     le = MotorRampExample(uri)
 

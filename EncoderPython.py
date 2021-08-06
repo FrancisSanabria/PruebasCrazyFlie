@@ -15,12 +15,6 @@ time.sleep(1)
 arduino.flushInput()
 arduino.setDTR(True)
 
-"""
-while True:
-    line = arduino.readline()
-    line = line.decode('ascii', errors='replace')
-    print(line)
-"""
 
 with arduino:
     while True:
