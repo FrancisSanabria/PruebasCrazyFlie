@@ -22,6 +22,8 @@ uri = uri_helper.uri_from_env(default='radio://0/0/250K/E7E7E7E7E7')
 
 logging.basicConfig(level=logging.ERROR)
 
+EstadoConet = False
+
 
 class MotorRampExample:
     """Example that connects to a Crazyflie and ramps the motors up/down and
@@ -44,10 +46,9 @@ class MotorRampExample:
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
-
-        # Start a separate thread to do the motor test.
-        # Do not hijack the calling thread!
-        Thread(target=self._ramp_motors).start()
+        print('Hemos Conecatdo el drone')
+        global EstadoConet
+        EstadoConet = True
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
@@ -94,13 +95,13 @@ class MotorRampExample:
         # Make sure that the last packet leaves before the link is closed
         # since the message queue is not flushed before closing
         time.sleep(0.1)
-        self._cf.close_link()
+        #self._cf.close_link()
 
 
 
 #------------------------------------------------------
 #                          FUNCIONES
-#--
+#------------------------------------------------------
 isReceiving = False # bandera para comenzar a recibir datos / flag for start receive data 
 isRun = True # bandera para recibir datos /  flag for receive data 
 value = 0.0 #  dato de sensor / data sensor
@@ -117,9 +118,14 @@ def getData():
             isReceiving = True 
 
 def askQuit():
+    global le
     global isRun
+    global EstadoConet
     isRun = False
     thread.join()
+
+    if EstadoConet == True:
+        le._cf.close_link()
     serialConnection.close()
     root.quit()
     root.destroy()
@@ -166,7 +172,7 @@ ymax = 180
 
 fig = plt.figure(facecolor='0.94')# Crea una nueva figura #Create a new figure.
 ax  = plt.axes(xlim=(xmin, xmax), ylim=(ymin , ymax))
-plt.title("Real-time Sensor reading") #Titulo de la figura # Figure title
+plt.title("Lectura de Angulo de Banqueo") #Titulo de la figura # Figure title
 ax.set_xlabel("Muestras")
 ax.set_ylabel("Anulo en grados")
 lines = ax.plot([], [])[0]
@@ -181,31 +187,53 @@ root = Tk()
 root.protocol('WM_DELETE_WINDOW', askQuit)
 root.title("Control de orientación - Crazyflie")
 titulo = Label(root, text="VENTANA PRINCIPAL", font = ("Helvetica",15,"bold"))
-titulo.grid(row=0,column=0, columnspan=2)
+titulo.grid(row=0,column=0, columnspan=2,pady = 15)
 
 
 canvas = FigureCanvasTkAgg(fig, master = root)
-canvas._tkcanvas.grid(row=1,column=0, rowspan = 2)
+canvas._tkcanvas.grid(row=1,column=0, rowspan = 3, padx = 15)
 
 
-def EnviarComandos():
-    num = Slider.get()
-    global pitch_num
-    pitch_num = int(num)
+
+def ConectaDrone():
     cflib.crtp.init_drivers()
+    global le
     le = MotorRampExample(uri)
+    
+
+def DesconectarDrone():
+    global EstadoConet
+    if (EstadoConet == True):
+        global le
+        le._cf.close_link()
+        print('Desconectando')
+        EstadoConet = False
+    else:
+        print("Operacion no valida")
+
+def RutinaPitch():
+    if EstadoConet == True:
+        global le
+        num = Slider.get()
+        global pitch_num
+        pitch_num = int(num)
+        Thread(target=le._ramp_motors).start()
+    else:
+        print("El drone no se ha conectado")
+    
+
 
 
 #----------------------------------- PARA DEFINIR LOS DATOS ENVIADOS -------------------------------
 Cuad_ang = LabelFrame(root, text="Angulo Deseado", padx=15 , pady=15)
-Cuad_ang.grid(row=1,column=1, padx=30) 
+Cuad_ang.grid(row=1,column=1, padx=30,pady=10) 
 
 
 Slider = Scale(Cuad_ang, from_= -45, to= 45, orient= HORIZONTAL, length= 200) 
 Etiqueta1 = Label(Cuad_ang,text="Angulo de Pitch deseado").grid(row=1,column=1)
 Etiqueta2 = Label(Cuad_ang,text="en grados").grid(row=2,column=1) 
 Slider.grid(row=3,column=1)
-Boton1 = Button(Cuad_ang,text="Iniciar Rutina", command= EnviarComandos).grid(row=4,column=1, pady = 5) #place(x=250,y=150)
+Boton1 = Button(Cuad_ang,text="Iniciar Rutina", command= RutinaPitch).grid(row=4,column=1, pady = 5) #place(x=250,y=150)
 
 ang = StringVar(root, "Angulo Actual: 0.00")
 LabelAng = Label(Cuad_ang, textvariable= ang)
@@ -213,7 +241,7 @@ LabelAng.grid(row=5,column=1, pady=20)
 
 #----------------------------------- DEFINICION PARA EL PID -------------------------------
 Cuad_PID = LabelFrame(root, text="Constantes PID", padx=15 , pady=15)
-Cuad_PID.grid(row=2,column=1, padx=30) 
+Cuad_PID.grid(row=2,column=1, padx=30,pady=10) 
 
 KP_L =Label(Cuad_PID,text="Kp  ").grid(row=0,column=0)
 KI_L =Label(Cuad_PID,text="Ki  ").grid(row=1,column=0)
@@ -227,12 +255,15 @@ KD_E.grid(row=1,column=1, pady = 3)
 
 KI_E = Entry(Cuad_PID, width=8)
 KI_E.grid(row=2,column=1, pady = 3)
+Boton_Constantes = Button(Cuad_PID,text="Enviar Constantes").grid(row=4,column=0, columnspan= 2)
 
-Boton1 = Button(Cuad_PID,text="Enviar Constantes", command= EnviarComandos).grid(row=4,column=0, columnspan= 2)
+#---------------------------------- CONECCION DEL DRONE ---------------------------------------
+Cuad_drone = LabelFrame(root, text="Estado del Drone", padx=10 , pady=10)
+Cuad_drone.grid(row=3,column=1, padx=30,pady=10) 
 
+Boton_Conect = Button(Cuad_drone,text="Conectar Drone", command= ConectaDrone).grid(row=0,column=0, pady = 3)
+Boton_Disconect = Button(Cuad_drone,text="Desconectar Drone", command= DesconectarDrone).grid(row=1,column=0, pady = 3)
 
-
-    
 anim = animation.FuncAnimation(fig,plotData, fargs=(Samples,lines), interval=sampleTime)
 
 
