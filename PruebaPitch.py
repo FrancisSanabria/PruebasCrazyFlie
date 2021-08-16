@@ -23,6 +23,9 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
+#
+#  Modificaciones realizadas por Francis Sanabria, como proyecto de
+#  graduacion para obtener el titulo de Ingeniero Mecatronico
 """
 Simple example that connects to the first Crazyflie found, ramps up/down
 the motors and disconnects.

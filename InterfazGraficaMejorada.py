@@ -1,3 +1,35 @@
+# -*- coding: utf-8 -*-
+#
+#     ||          ____  _ __
+#  +------+      / __ )(_) /_______________ _____  ___
+#  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
+#  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
+#   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
+#
+#  Copyright (C) 2014 Bitcraze AB
+#
+#  Crazyflie Nano Quadcopter Client
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 2
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA  02110-1301, USA.
+#
+#  Modificaciones realizadas por Francis Sanabria, como proyecto de
+#  graduacion para obtener el titulo de Ingeniero Mecatronico
+
+"""
+Este documento presenta el codigo que sera utilizado para
+"""
 from threading import Thread
 import serial
 import time
@@ -28,7 +60,9 @@ EstadoConet = False
 class MotorRampExample:
     """Example that connects to a Crazyflie and ramps the motors up/down and
     the disconnects"""
-
+#
+#  Modificaciones realizadas por Francis Sanabria, como proyecto de
+#  graduacion para obtener el titulo de Ingeniero Mecatronico
     def __init__(self, link_uri):
         """ Initialize and run the example with the specified link_uri """
 
@@ -113,6 +147,7 @@ def getData():
         while (isRun):  # leer datos / retrieve data 
             global isReceiving
             global value
+            serialConnection.write(b'Z')
             value  = float(serialConnection.readline().strip())  #Leer sensor / Read sensor
             value =  np.degrees(np.arctan2(np.sin(np.radians(value)),np.cos(np.radians(value))))
             isReceiving = True 
@@ -220,9 +255,14 @@ def RutinaPitch():
         Thread(target=le._ramp_motors).start()
     else:
         print("El drone no se ha conectado")
+
+def TararEncoder():
+    global serialConnection
+    serialConnection.write(b'T')
+
+def EnviarConstantes():
+    print("Enviando Constantes")
     
-
-
 
 #----------------------------------- PARA DEFINIR LOS DATOS ENVIADOS -------------------------------
 Cuad_ang = LabelFrame(root, text="Angulo Deseado", padx=15 , pady=15)
@@ -255,16 +295,16 @@ KD_E.grid(row=1,column=1, pady = 3)
 
 KI_E = Entry(Cuad_PID, width=8)
 KI_E.grid(row=2,column=1, pady = 3)
-Boton_Constantes = Button(Cuad_PID,text="Enviar Constantes").grid(row=4,column=0, columnspan= 2)
+Boton_Constantes = Button(Cuad_PID,text="Enviar Constantes", command= EnviarConstantes).grid(row=4,column=0, columnspan= 2)
 
 #---------------------------------- CONECCION DEL DRONE ---------------------------------------
 Cuad_drone = LabelFrame(root, text="Estado del Drone", padx=10 , pady=10)
-Cuad_drone.grid(row=3,column=1, padx=30,pady=10) 
+Cuad_drone.grid(row=4,column=0, padx=30,pady=10) 
 
 Boton_Conect = Button(Cuad_drone,text="Conectar Drone", command= ConectaDrone).grid(row=0,column=0, pady = 3)
 Boton_Disconect = Button(Cuad_drone,text="Desconectar Drone", command= DesconectarDrone).grid(row=1,column=0, pady = 3)
+Boton_Tarar = Button(Cuad_drone,text="Tarar", command= TararEncoder).grid(row=3,column=0, pady = 3)
 
 anim = animation.FuncAnimation(fig,plotData, fargs=(Samples,lines), interval=sampleTime)
-
 
 root.mainloop()
