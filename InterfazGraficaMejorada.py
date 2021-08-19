@@ -39,12 +39,14 @@ import matplotlib.animation as animation
 import numpy as np
 from tkinter import *
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import messagebox
 
 
 import logging
 import cflib
 from cflib.crazyflie import Crazyflie
 from cflib.utils import uri_helper
+from cflib.crazyflie.log import LogConfig
 
 #------------------------------------------------------------------------------------------------
 #                                  DEFINICION DE CLASES
@@ -80,6 +82,21 @@ class MotorRampExample:
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
+
+        #Codigo agregado para el sistema
+
+        #"""
+        # The definition of the logconfig can be made before connecting
+        self._lg_stab = LogConfig(name='Stabilizer', period_in_ms=100)
+        self._lg_stab.add_variable('stabilizer.roll', 'float')
+        self._lg_stab.add_variable('stabilizer.pitch', 'float')
+        self._lg_stab.add_variable('stabilizer.yaw', 'float')
+
+        self._lg_stab.add_variable('pid_attitude.pitch_kp', 'float')
+        self._lg_stab.add_variable('pid_attitude.pitch_kd', 'float')
+        self._lg_stab.add_variable('pid_attitude.pitch_ki', 'float')
+        # """
+
         print('Hemos Conecatdo el drone')
         global EstadoConet
         EstadoConet = True
@@ -102,10 +119,26 @@ class MotorRampExample:
         thrust_mult = 1
         thrust_step = 500
         thrust = 20000
-        pitch = 30
+        pitch = 0
         roll = 0
         yawrate = 0
 
+        #i = 0
+        self._cf.commander.send_setpoint(0, 0, 0, 0)
+        for i in range(200):
+            self._cf.commander.send_setpoint(roll, 0, yawrate, thrust)
+            time.sleep(0.01)
+
+        self._cf.commander.send_setpoint(0, 0, 0, 0)
+        for i in range(200):
+            self._cf.commander.send_setpoint(roll, pitch_num, yawrate, thrust)
+            time.sleep(0.01)
+        self._cf.commander.send_setpoint(0, 0, 0, 0)
+        # Make sure that the last packet leaves before the link is closed
+        # since the message queue is not flushed before closing
+        time.sleep(0.1)
+
+        """
         # Unlock startup thrust protection
         self._cf.commander.send_setpoint(0, 0, 0, 0)
         while thrust >= 20000:
@@ -130,6 +163,7 @@ class MotorRampExample:
         # since the message queue is not flushed before closing
         time.sleep(0.1)
         #self._cf.close_link()
+        """
 
 
 
@@ -210,8 +244,7 @@ ax  = plt.axes(xlim=(xmin, xmax), ylim=(ymin , ymax))
 plt.title("Lectura de Angulo de Banqueo") #Titulo de la figura # Figure title
 ax.set_xlabel("Muestras")
 ax.set_ylabel("Anulo en grados")
-lines = ax.plot([], [])[0]
-
+lines = ax.plot([], [], label = 'Pitch Angle', color = 'red')[0]
 """
 lineLabel = 'Pitch Angle'
 lines = ax.plot([], [], label=lineLabel)[0] # Grafica datos iniciales y retorna lineas que representan la gráfica/ Plot initial data and Return a list of Line2D objects representing the plotted data.
@@ -231,9 +264,12 @@ canvas._tkcanvas.grid(row=1,column=0, rowspan = 3, padx = 15)
 
 
 def ConectaDrone():
-    cflib.crtp.init_drivers()
-    global le
-    le = MotorRampExample(uri)
+    if (EstadoConet == True):
+        messagebox.showwarning('Operacion no valida', 'El Crazyflie ya se encunetra conectado')
+    else:   
+        cflib.crtp.init_drivers()
+        global le
+        le = MotorRampExample(uri)
     
 
 def DesconectarDrone():
@@ -244,7 +280,7 @@ def DesconectarDrone():
         print('Desconectando')
         EstadoConet = False
     else:
-        print("Operacion no valida")
+        messagebox.showwarning('Operacion no valida', 'El Crazyflie ya se encunetra desconectado')
 
 def RutinaPitch():
     if EstadoConet == True:
@@ -254,14 +290,19 @@ def RutinaPitch():
         pitch_num = int(num)
         Thread(target=le._ramp_motors).start()
     else:
-        print("El drone no se ha conectado")
+        messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
 
 def TararEncoder():
     global serialConnection
     serialConnection.write(b'T')
 
 def EnviarConstantes():
-    print("Enviando Constantes")
+    if EstadoConet == True:
+        print("Enviando Constantes")
+    else:
+        messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
+    
+
     
 
 #----------------------------------- PARA DEFINIR LOS DATOS ENVIADOS -------------------------------
