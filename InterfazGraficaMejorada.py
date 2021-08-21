@@ -88,18 +88,48 @@ class MotorRampExample:
         #"""
         # The definition of the logconfig can be made before connecting
         self._lg_stab = LogConfig(name='Stabilizer', period_in_ms=100)
-        self._lg_stab.add_variable('stabilizer.roll', 'float')
+        #self._lg_stab.add_variable('stabilizer.roll', 'float')
         self._lg_stab.add_variable('stabilizer.pitch', 'float')
-        self._lg_stab.add_variable('stabilizer.yaw', 'float')
+        #self._lg_stab.add_variable('stabilizer.controller', 'float')
+        #self._lg_stab.add_variable('stabilizer.yaw', 'float')
+        self._lg_stab.add_variable('pid_Constant.pitch_kp_c', 'float')
+        self._lg_stab.add_variable('pid_Constant.pitch_ki_c', 'float')
+        self._lg_stab.add_variable('pid_Constant.pitch_kd_c', 'float')
+       
 
-        self._lg_stab.add_variable('pid_attitude.pitch_kp', 'float')
-        self._lg_stab.add_variable('pid_attitude.pitch_kd', 'float')
-        self._lg_stab.add_variable('pid_attitude.pitch_ki', 'float')
+        # Adding the configuration cannot be done until a Crazyflie is
+        # connected, since we need to check that the variables we
+        # would like to log are in the TOC.
+        try:
+            self._cf.log.add_config(self._lg_stab)
+            # This callback will receive the data
+            #self._lg_stab.data_received_cb.add_callback(self._stab_log_data)
+            # This callback will be called on errors
+            self._lg_stab.error_cb.add_callback(self._stab_log_error)
+            # Start the logging
+            self._lg_stab.start()
+        except KeyError as e:
+            print('Could not start log configuration,'
+                  '{} not found in TOC'.format(str(e)))
+        except AttributeError:
+            print('Could not add Stabilizer log config, bad configuration.')
         # """
 
-        print('Hemos Conecatdo el drone')
+        print('Successful connection')
         global EstadoConet
         EstadoConet = True
+    
+
+    def _stab_log_error(self, logconf, msg):
+        """Callback from the log API when an error occurs"""
+        print('Error when logging %s: %s' % (logconf.name, msg))
+
+    def _stab_log_data(self, timestamp, data, logconf):
+        """Callback from a the log API when data arrives"""
+        #print(f'[{timestamp}][{logconf.name}]: ', end='')
+        for name, value in data.items():
+            print(f'{name}: {value:3.3f} ', end='')
+        print()
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
@@ -124,10 +154,11 @@ class MotorRampExample:
         yawrate = 0
 
         #i = 0
-        self._cf.commander.send_setpoint(0, 0, 0, 0)
-        for i in range(200):
-            self._cf.commander.send_setpoint(roll, 0, yawrate, thrust)
-            time.sleep(0.01)
+
+        #self._cf.commander.send_setpoint(0, 0, 0, 0)
+        #for i in range(200):
+        #    self._cf.commander.send_setpoint(roll, 0, yawrate, thrust)
+        #    time.sleep(0.01)
 
         self._cf.commander.send_setpoint(0, 0, 0, 0)
         for i in range(200):
@@ -296,11 +327,29 @@ def TararEncoder():
     global serialConnection
     serialConnection.write(b'T')
 
-def EnviarConstantes():
+def EnviarConstantes():  #Las constantes iniciales son Kp = 6.0- Ki = 3.0  - Kd = 0.0
     if EstadoConet == True:
-        print("Enviando Constantes")
+        global le
+        c_kp = float(KP_E.get())
+        c_ki = float(KI_E.get())
+        c_kd = float(KD_E.get())
+        le._cf.param.set_value('pid_Constant.pitch_kp_c',c_kp)
+        le._cf.param.set_value('pid_Constant.pitch_ki_c',c_ki)
+        le._cf.param.set_value('pid_Constant.pitch_kd_c',c_kd)
+        print('Controller setting completed')
     else:
         messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
+
+def ReseteandoConstantes():  #Las constantes iniciales son Kp = 6.0- Ki = 3.0  - Kd = 0.0
+    if EstadoConet == True:
+        global le
+        le._cf.param.set_value('pid_Constant.pitch_kp_c',float(6.0))
+        le._cf.param.set_value('pid_Constant.pitch_ki_c',float(3.0))
+        le._cf.param.set_value('pid_Constant.pitch_kd_c',float(0.0))
+        print('Resetting completed')
+    else:
+        messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
+
     
 
     
@@ -331,12 +380,14 @@ KD_L =Label(Cuad_PID,text="Kd  ").grid(row=2,column=0)
 KP_E = Entry(Cuad_PID, width=8)
 KP_E.grid(row=0,column=1, pady = 3)
 
-KD_E = Entry(Cuad_PID, width=8)
-KD_E.grid(row=1,column=1, pady = 3)
-
 KI_E = Entry(Cuad_PID, width=8)
-KI_E.grid(row=2,column=1, pady = 3)
+KI_E.grid(row=1,column=1, pady = 3)
+
+KD_E = Entry(Cuad_PID, width=8)
+KD_E.grid(row=2,column=1, pady = 3)
+
 Boton_Constantes = Button(Cuad_PID,text="Enviar Constantes", command= EnviarConstantes).grid(row=4,column=0, columnspan= 2)
+Reset_Constantes = Button(Cuad_PID,text="Reset Constantes", command= ReseteandoConstantes).grid(row=5,column=0, columnspan= 2)
 
 #---------------------------------- CONECCION DEL DRONE ---------------------------------------
 Cuad_drone = LabelFrame(root, text="Estado del Drone", padx=10 , pady=10)

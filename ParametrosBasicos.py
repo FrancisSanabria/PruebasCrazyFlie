@@ -96,7 +96,7 @@ class LoggingExample:
             print('Could not add Stabilizer log config, bad configuration.')
 
         # Start a timer to disconnect in 10s
-        t = Timer(15, self._cf.close_link)
+        t = Timer(5, self._cf.close_link)
         t.start()
 
     def _stab_log_error(self, logconf, msg):
