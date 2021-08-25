@@ -41,6 +41,7 @@ import numpy as np
 from tkinter import *
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import messagebox
+import pandas as pd
 
 
 import logging
@@ -91,10 +92,8 @@ class MotorRampExample:
         #"""
         # The definition of the logconfig can be made before connecting
         self._lg_stab = LogConfig(name='Stabilizer', period_in_ms=100)
-        #self._lg_stab.add_variable('stabilizer.roll', 'float')
+
         self._lg_stab.add_variable('stabilizer.pitch', 'float')
-
-
         self._lg_stab.add_variable('pid_Constant.pitch_kp_c', 'float')
         self._lg_stab.add_variable('pid_Constant.pitch_ki_c', 'float')
         self._lg_stab.add_variable('pid_Constant.pitch_kd_c', 'float')
@@ -156,17 +155,10 @@ class MotorRampExample:
         roll = 0
         yawrate = 0
 
-        
-
-        #i = 0
         global GrafFinal
         global DatoFinal
         DatoFinal = []
         GrafFinal = True
-        #self._cf.commander.send_setpoint(0, 0, 0, 0)
-        #for i in range(200):
-        #    self._cf.commander.send_setpoint(roll, 0, yawrate, thrust)
-        #    time.sleep(0.01)
 
         self._cf.commander.send_setpoint(0, 0, 0, 0)
         for i in range(300):
@@ -176,34 +168,7 @@ class MotorRampExample:
         # Make sure that the last packet leaves before the link is closed
         # since the message queue is not flushed before closing
         time.sleep(0.1)
-
         GrafFinal = False
-        """
-        # Unlock startup thrust protection
-        self._cf.commander.send_setpoint(0, 0, 0, 0)
-        while thrust >= 20000:
-            self._cf.commander.send_setpoint(roll, 0, yawrate, thrust)
-            time.sleep(0.1)
-            if thrust >= 25000:
-                thrust_mult = -1
-            thrust += thrust_step * thrust_mult
-        
-        self._cf.commander.send_setpoint(0, 0, 0, 0)
-        thrust_mult  = 1
-        thrust = 20000
-        while thrust >= 20000:
-            self._cf.commander.send_setpoint(roll, pitch_num, yawrate, thrust)
-            time.sleep(0.1)
-            if thrust >= 25000:
-                thrust_mult = -1
-            thrust += thrust_step * thrust_mult
-        
-        self._cf.commander.send_setpoint(0, 0, 0, 0)
-        # Make sure that the last packet leaves before the link is closed
-        # since the message queue is not flushed before closing
-        time.sleep(0.1)
-        #self._cf.close_link()
-        """
 
 
 
@@ -255,11 +220,10 @@ def plotData(self,Samples, lines):
 
     # ---- Toma los datos para graficar la nueva figura--------------
     global DatoFinal
+    global line2
     if (GrafFinal == True):
         DatoFinal.append(value) #Lectura de datos donde grafica la nueva figura
-
-    
-
+        #plt.plot(DatoFinal)
 
 #-----------------------------VARIABLES-------------------------------------
 serialPort = '/dev/ttyACM0' # Puerto serial arduino / Arduino serial port
@@ -283,9 +247,9 @@ while isReceiving != True: # Esperar hasta recibir datos
 
   
 
-Samples = 100  #Muestras / Samples
+Samples = 150  #Muestras / Samples
 data = collections.deque([0] * Samples, maxlen=Samples) # Vector de muestras/ Sample Vector
-sampleTime = 60  #Tiempo de muestreo / Sample Time
+sampleTime = 20  #Tiempo de muestreo / Sample Time
 
 # Limites de los ejes / Axis limit
 xmin = 0
@@ -294,17 +258,22 @@ ymin = -180
 ymax = 180
 
 
-
+# ---------------------- Figura Principal Interactiva ------------------------
 fig = plt.figure(facecolor='0.94')# Crea una nueva figura #Create a new figure.
 ax  = plt.axes(xlim=(xmin, xmax), ylim=(ymin , ymax))
 plt.title("Lectura de Angulo de Banqueo") #Titulo de la figura # Figure title
 ax.set_xlabel("Muestras")
-ax.set_ylabel("Anulo en grados")
+ax.set_ylabel("Angulo en grados")
 lines = ax.plot([], [], label = 'Pitch Angle', color = 'red')[0]
+
 """
-lineLabel = 'Pitch Angle'
-lines = ax.plot([], [], label=lineLabel)[0] # Grafica datos iniciales y retorna lineas que representan la gráfica/ Plot initial data and Return a list of Line2D objects representing the plotted data.
-lineValueText = ax.text(0.85, 0.95, '', transform=ax.transAxes) #Agregue texto en la ubicación x , y (0 a 1) / Add text at location x, y (0 to 1)
+#---------------- Figura 2
+fig2 = plt.figure(facecolor='0.94')# Crea una nueva figura #Create a new figure.
+ax2  = plt.axes(xlim=(xmin, xmax), ylim=(ymin , ymax))
+plt.title("Muestreo de Corrida") #Titulo de la figura # Figure title
+ax2.set_xlabel("Muestras")
+ax2.set_ylabel("Angulo en grados")
+#line2 = ax2.plot([], [], label = 'Pitch Angle Muestra', color = 'blue')[0]
 """
 # ------------------------- DEFINICION DE TK INTER ---------------------------------
 root = Tk()
@@ -314,9 +283,12 @@ titulo = Label(root, text="VENTANA PRINCIPAL", font = ("Helvetica",15,"bold"))
 titulo.grid(row=0,column=0, columnspan=2,pady = 15)
 
 
+# Se incluye la grafica en la interfaz
 canvas = FigureCanvasTkAgg(fig, master = root)
 canvas._tkcanvas.grid(row=1,column=0, rowspan = 3, padx = 15)
 
+#canvas2 = FigureCanvasTkAgg(fig2, master = root)
+#canvas2._tkcanvas.grid(row=1,column=4, rowspan = 3, padx = 15)
 
 
 def ConectaDrone():
@@ -351,6 +323,9 @@ def RutinaPitch():
     else:
         messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
 
+
+
+
 def TararEncoder():
     global serialConnection
     serialConnection.write(b'T')
@@ -379,10 +354,22 @@ def ReseteandoConstantes():  #Las constantes iniciales son Kp = 6.0- Ki = 3.0  -
         messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
 
     
-
-def GraficaCorrida():
+def GuardarCorrida():
     if EstadoConet == True:
         global DatoFinal
+        global pitch_num
+        plt.figure(2)
+        plt.clf()
+        plt.subplot(111)
+        plt.plot(DatoFinal)
+        plt.axhline(pitch_num, color = 'b', lw = 1, linestyle = '--') 
+        plt.title("Grafico de Corrida") #Titulo de la figura # Figure title
+        plt.xlabel('Muestras')
+        plt.ylabel('Angulo de Banqueo')
+        plt.savefig('Prueba.png')
+        #exportar data de python a csv
+        df_Pitch = pd.DataFrame(DatoFinal)
+        df_Pitch.to_csv('DataPitch.csv')
     else:
         messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
 #----------------------------------- PARA DEFINIR LOS DATOS ENVIADOS -------------------------------
@@ -419,6 +406,7 @@ KD_E.grid(row=2,column=1, pady = 3)
 
 Boton_Constantes = Button(Cuad_PID,text="Enviar Constantes", command= EnviarConstantes).grid(row=4,column=0, columnspan= 2)
 Reset_Constantes = Button(Cuad_PID,text="Reset Constantes", command= ReseteandoConstantes).grid(row=5,column=0, columnspan= 2)
+Boton_Show = Button(Cuad_PID,text="Mostrar Corrida", command= GuardarCorrida).grid(row=6,column=0, columnspan= 2)
 
 #---------------------------------- CONECCION DEL DRONE ---------------------------------------
 Cuad_drone = LabelFrame(root, text="Estado del Drone", padx=10 , pady=10)
@@ -428,6 +416,7 @@ Boton_Conect = Button(Cuad_drone,text="Conectar Drone", command= ConectaDrone).g
 Boton_Disconect = Button(Cuad_drone,text="Desconectar Drone", command= DesconectarDrone).grid(row=1,column=0, pady = 3)
 Boton_Tarar = Button(Cuad_drone,text="Tarar", command= TararEncoder).grid(row=3,column=0, pady = 3)
 
-anim = animation.FuncAnimation(fig,plotData, fargs=(Samples,lines), interval=sampleTime)
+anim = animation.FuncAnimation(fig,plotData, fargs=(Samples,lines), interval=sampleTime) #Animacion de la figura
 
 root.mainloop()
+
