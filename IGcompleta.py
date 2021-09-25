@@ -158,9 +158,9 @@ class MotorRampExample:
         print('Disconnected from %s' % link_uri)
 
     def _ramp_motors(self):
-        thrust_mult = 1
+        #thrust_mult = 1
         thrust_step = 500
-        thrust = 20000
+        thrust = 30000
         pitch = 0
         roll = 0
         yawrate = 0
@@ -236,7 +236,8 @@ def plotData(self,Samples, lines):
         #plt.plot(DatoFinal)
 
 #-----------------------------VARIABLES-------------------------------------
-serialPort = '/dev/ttyACM0' # Puerto serial arduino / Arduino serial port
+serialPort = '/dev/ttyACM0' # Puerto serial arduino / Arduino UNOserial port
+#serialPort = '/dev/ttyUSB0' # Puerto serial arduino / Arduino NANO serial port
 baudRate = 115200  # Baudios
 isReceiving = False
 isRun = True
@@ -351,14 +352,14 @@ def EnviarConstantes():  #Las constantes iniciales son Kp = 6.0- Ki = 3.0  - Kd 
         le._cf.param.set_value('pid_Constant.pitch_kp_c',c_kp)
         le._cf.param.set_value('pid_Constant.pitch_ki_c',c_ki)
         le._cf.param.set_value('pid_Constant.pitch_kd_c',c_kd)
-        KP_E.delete(0,END)
-        KI_E.delete(0,END)
-        KD_E.delete(0,END)        
+        #KP_E.delete(0,END)
+        #KI_E.delete(0,END)
+        #KD_E.delete(0,END)        
         print('Controller setting completed')
     else:
         messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
 
-def ReseteandoConstantes():  #Las constantes iniciales son Kp = 6.0- Ki = 3.0  - Kd = 0.0
+def ReseteandoConstantes(): 
     if EstadoConet == True:
         global le
         le._cf.param.set_value('pid_Constant.pitch_kp_c',float(6.0))
@@ -384,6 +385,7 @@ def GuardarCorrida():
         plt.savefig('/media/sf_VM_SHARE_TESIS/ResultadoPruebas/Prueba.png')
         #exportar data de python a csv
         df_Pitch = pd.DataFrame(DatoFinal)
+        df_Pitch.insert(1,"Referencia",pitch_num)
         df_Pitch.to_csv('/media/sf_VM_SHARE_TESIS/ResultadoPruebas/DataPitch.csv')
     else:
         messagebox.showerror('Error de Conexion','No se ha conectado el Crazyflie')
@@ -437,9 +439,6 @@ Boton_Tarar = Button(Cuad_drone,text="Tarar", command= TararEncoder).grid(row=3,
 DescConexion = Label(Cuad_drone, textvariable= textConet).grid(row=4,column=0,pady = 4)
 
 anim = animation.FuncAnimation(fig,plotData, fargs=(Samples,lines), interval=sampleTime) #Animacion de la figura
-
-
-
 
 root.mainloop()
 
